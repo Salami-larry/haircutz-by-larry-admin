@@ -23,3 +23,7 @@ npm run dev
 ```
 
 Open [http://localhost:3001](http://localhost:3001).
+
+Unauthenticated visits redirect to `/login`. After login you land on **Styles**. Nav: Styles | New style | Appointments | Logout.
+
+Seed an admin in Mongo — see `haircutz-by-larry-be/docs/admin-seed.md`.

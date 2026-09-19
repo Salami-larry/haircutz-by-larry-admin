@@ -1,5 +1,5 @@
 import { clearToken, getToken, setToken } from "./auth";
-import type { AdminMe, LoginResponse } from "./types";
+import type { AdminMe, Hairstyle, LoginResponse, Paginated } from "./types";
 
 function baseURL(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
@@ -84,4 +84,95 @@ export async function fetchMe(): Promise<AdminMe> {
     throw new ApiError(await parseError(res), res.status);
   }
   return (await res.json()) as AdminMe;
+}
+
+export async function listHairstyles(params?: {
+  q?: string;
+  active?: boolean;
+  page?: number;
+  page_size?: number;
+}): Promise<Paginated<Hairstyle>> {
+  const search = new URLSearchParams();
+  if (params?.q) search.set("q", params.q);
+  if (params?.active !== undefined) search.set("active", String(params.active));
+  if (params?.page !== undefined) search.set("page", String(params.page));
+  if (params?.page_size !== undefined) search.set("page_size", String(params.page_size));
+
+  const qs = search.toString();
+  const res = await apiFetch(`/api/v1/admin/hairstyles${qs ? `?${qs}` : ""}`);
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Paginated<Hairstyle>;
+}
+
+export async function getHairstyle(id: string): Promise<Hairstyle> {
+  const res = await apiFetch(`/api/v1/admin/hairstyles/${id}`);
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Hairstyle;
+}
+
+export async function createHairstyle(body: unknown): Promise<Hairstyle> {
+  const res = await apiFetch("/api/v1/admin/hairstyles", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Hairstyle;
+}
+
+export async function updateHairstyle(id: string, body: unknown): Promise<Hairstyle> {
+  const res = await apiFetch(`/api/v1/admin/hairstyles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Hairstyle;
+}
+
+export async function deleteHairstyle(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/hairstyles/${id}`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+}
+
+export async function uploadHairstyleImage(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await apiFetch("/api/v1/admin/uploads", {
+    method: "POST",
+    body: form,
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
+
+export async function uploadHairstyleVideo(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const res = await apiFetch("/api/v1/admin/uploads/video", {
+    method: "POST",
+    body: form,
+  });
+
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+
+  const data = (await res.json()) as { url: string };
+  return data.url;
 }

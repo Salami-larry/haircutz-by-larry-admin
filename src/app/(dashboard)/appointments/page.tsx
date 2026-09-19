@@ -127,8 +127,8 @@ export default function AppointmentsPage() {
   return (
     <AdminShell title="Appointments" contentWidth="wide">
       <Typography.Paragraph type="secondary" className="mt-0!">
-        Holds and paid bookings. Use Open → Mark paid for bank transfers. Unpaid{" "}
-        <code>booked</code> holds auto-abandon after 15 minutes. Status transitions in Phase 6.
+        Filter by status/date. Open a row to mark paid, acknowledge, complete, or miss. Unpaid{" "}
+        <code>booked</code> holds auto-abandon after 15 minutes.
       </Typography.Paragraph>
 
       <div className="mb-4">

@@ -3,13 +3,40 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Alert, Button, Descriptions, Spin, Tag, Timeline, Typography } from "antd";
+import { Alert, Button, Descriptions, Modal, Space, Spin, Tag, Timeline, Typography } from "antd";
 
 import { AdminShell } from "@/components/admin-shell";
 import { useAppMessage } from "@/hooks/use-app-message";
-import { ApiError, getAppointment, markAppointmentPaid } from "@/lib/api";
+import {
+  ApiError,
+  getAppointment,
+  markAppointmentPaid,
+  updateAppointmentStatus,
+} from "@/lib/api";
 import { formatDateTime, formatKobo } from "@/lib/format";
-import type { Appointment } from "@/lib/types";
+import type { Appointment, AppointmentStatus } from "@/lib/types";
+
+function nextActions(status: AppointmentStatus): {
+  label: string;
+  status?: AppointmentStatus;
+  markPaid?: boolean;
+  danger?: boolean;
+}[] {
+  switch (status) {
+    case "booked":
+    case "abandoned":
+      return [{ label: "Mark paid", markPaid: true }];
+    case "paid":
+      return [{ label: "Acknowledge", status: "acknowledged" }];
+    case "acknowledged":
+      return [
+        { label: "Complete", status: "completed" },
+        { label: "Missed", status: "missed", danger: true },
+      ];
+    default:
+      return [];
+  }
+}
 
 export default function AppointmentDetailPage() {
   const params = useParams();
@@ -18,7 +45,7 @@ export default function AppointmentDetailPage() {
   const [appt, setAppt] = useState<Appointment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
+  const [acting, setActing] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -40,19 +67,52 @@ export default function AppointmentDetailPage() {
 
   async function onMarkPaid() {
     if (!appt) return;
-    setMarking(true);
+    setActing(true);
     try {
       const updated = await markAppointmentPaid(appt.id, "Marked paid by admin");
       setAppt(updated);
-      message.success("Marked paid — tracking assigned and emails sent if SMTP is configured");
+      message.success("Marked paid — tracking assigned; paid emails sent if SMTP is configured");
     } catch (e) {
       message.error(e instanceof ApiError ? e.message : "Mark paid failed");
     } finally {
-      setMarking(false);
+      setActing(false);
     }
   }
 
-  const canMarkPaid = appt?.status === "booked" || appt?.status === "abandoned";
+  async function onStatus(next: AppointmentStatus) {
+    if (!appt) return;
+    setActing(true);
+    try {
+      const updated = await updateAppointmentStatus(appt.id, next);
+      setAppt(updated);
+      if (next === "completed" || next === "missed") {
+        message.success(`Marked ${next} — customer email sent if SMTP is configured`);
+      } else {
+        message.success(`Status → ${next}`);
+      }
+    } catch (e) {
+      message.error(e instanceof ApiError ? e.message : "Status update failed");
+      throw e;
+    } finally {
+      setActing(false);
+    }
+  }
+
+  function confirmOutcome(next: "completed" | "missed") {
+    const isMissed = next === "missed";
+    Modal.confirm({
+      title: isMissed ? "Mark as missed?" : "Mark as completed?",
+      content: isMissed
+        ? "This cannot be undone. The customer will be emailed and can reschedule once for free. Make sure you did not mean to mark completed."
+        : "This cannot be undone. The customer will be emailed that the appointment is complete. Make sure you did not mean to mark missed.",
+      okText: isMissed ? "Mark missed" : "Mark completed",
+      okButtonProps: { danger: isMissed },
+      cancelText: "Cancel",
+      onOk: () => onStatus(next),
+    });
+  }
+
+  const actions = appt ? nextActions(appt.status) : [];
 
   return (
     <AdminShell title="Appointment">
@@ -73,10 +133,25 @@ export default function AppointmentDetailPage() {
           <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <Tag>{appt.status}</Tag>
-              {canMarkPaid ? (
-                <Button type="primary" loading={marking} onClick={() => void onMarkPaid()}>
-                  Mark paid
-                </Button>
+              {actions.length > 0 ? (
+                <Space wrap>
+                  {actions.map((a) => (
+                    <Button
+                      key={a.label}
+                      type={a.danger ? "default" : "primary"}
+                      danger={a.danger}
+                      loading={acting}
+                      onClick={() => {
+                        if (a.markPaid) void onMarkPaid();
+                        else if (a.status === "completed" || a.status === "missed") {
+                          confirmOutcome(a.status);
+                        } else if (a.status) void onStatus(a.status);
+                      }}
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                </Space>
               ) : null}
             </div>
 

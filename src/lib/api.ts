@@ -222,3 +222,18 @@ export async function markAppointmentPaid(id: string, note?: string): Promise<Ap
   }
   return (await res.json()) as Appointment;
 }
+
+export async function updateAppointmentStatus(
+  id: string,
+  status: AppointmentStatus,
+  note?: string,
+): Promise<Appointment> {
+  const res = await apiFetch(`/api/v1/admin/appointments/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, note: note ?? "" }),
+  });
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Appointment;
+}

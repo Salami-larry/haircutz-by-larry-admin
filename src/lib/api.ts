@@ -1,5 +1,12 @@
 import { clearToken, getToken, setToken } from "./auth";
-import type { AdminMe, Hairstyle, LoginResponse, Paginated } from "./types";
+import type {
+  AdminMe,
+  Appointment,
+  AppointmentStatus,
+  Hairstyle,
+  LoginResponse,
+  Paginated,
+} from "./types";
 
 function baseURL(): string {
   const base = process.env.NEXT_PUBLIC_API_URL;
@@ -175,4 +182,32 @@ export async function uploadHairstyleVideo(file: File): Promise<string> {
 
   const data = (await res.json()) as { url: string };
   return data.url;
+}
+
+export async function listAppointments(params?: {
+  status?: AppointmentStatus;
+  date?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<Paginated<Appointment>> {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.date) search.set("date", params.date);
+  if (params?.page !== undefined) search.set("page", String(params.page));
+  if (params?.page_size !== undefined) search.set("page_size", String(params.page_size));
+
+  const qs = search.toString();
+  const res = await apiFetch(`/api/v1/admin/appointments${qs ? `?${qs}` : ""}`);
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Paginated<Appointment>;
+}
+
+export async function getAppointment(id: string): Promise<Appointment> {
+  const res = await apiFetch(`/api/v1/admin/appointments/${id}`);
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Appointment;
 }

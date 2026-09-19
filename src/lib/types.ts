@@ -38,3 +38,45 @@ export type Paginated<T> = {
     has_previous_page: boolean;
   };
 };
+
+export type AppointmentStatus =
+  | "booked"
+  | "paid"
+  | "acknowledged"
+  | "completed"
+  | "missed"
+  | "abandoned";
+
+export type ServiceType = "walk_in" | "home_service";
+
+export type Appointment = {
+  id: string;
+  hairstyleId: string;
+  hairstyle: {
+    hairstyleId: string;
+    name: string;
+    durationMinutes: number;
+    walkInPriceKobo: number;
+    homeServicePriceKobo: number;
+    imageUrl?: string;
+  };
+  serviceType: ServiceType;
+  startAt: string;
+  endAt: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    address?: string;
+    notes?: string;
+  };
+  status: AppointmentStatus;
+  statusHistory: { status: AppointmentStatus; at: string; note?: string }[];
+  totalAmountKobo: number;
+  paystackReference?: string;
+  trackingNumber?: string;
+  paidAt?: string;
+  abandonedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};

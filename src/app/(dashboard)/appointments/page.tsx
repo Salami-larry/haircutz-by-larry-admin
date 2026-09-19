@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { Dayjs } from "dayjs";
 import { DatePicker, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -116,13 +117,18 @@ export default function AppointmentsPage() {
       dataIndex: "status",
       render: (s: AppointmentStatus) => <Tag color={statusColor(s)}>{s}</Tag>,
     },
+    {
+      title: "",
+      key: "actions",
+      render: (_, row) => <Link href={`/appointments/${row.id}`}>Open</Link>,
+    },
   ];
 
   return (
     <AdminShell title="Appointments" contentWidth="wide">
-      <Typography.Paragraph type="secondary" className="!mt-0">
-        Read-only hold inbox for Phase 3. Status updates arrive in Phase 6; payment in
-        Phase 4. Unpaid <code>booked</code> holds auto-abandon after 15 minutes.
+      <Typography.Paragraph type="secondary" className="mt-0!">
+        Holds and paid bookings. Use Open → Mark paid for bank transfers. Unpaid{" "}
+        <code>booked</code> holds auto-abandon after 15 minutes. Status transitions in Phase 6.
       </Typography.Paragraph>
 
       <div className="mb-4">

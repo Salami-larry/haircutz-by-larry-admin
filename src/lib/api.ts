@@ -211,3 +211,14 @@ export async function getAppointment(id: string): Promise<Appointment> {
   }
   return (await res.json()) as Appointment;
 }
+
+export async function markAppointmentPaid(id: string, note?: string): Promise<Appointment> {
+  const res = await apiFetch(`/api/v1/admin/appointments/${id}/mark-paid`, {
+    method: "POST",
+    body: JSON.stringify({ note: note ?? "" }),
+  });
+  if (!res.ok) {
+    throw new ApiError(await parseError(res), res.status);
+  }
+  return (await res.json()) as Appointment;
+}

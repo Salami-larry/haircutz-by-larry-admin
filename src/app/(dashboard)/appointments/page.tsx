@@ -161,6 +161,9 @@ export default function AppointmentsPage() {
           loading={loading}
           columns={columns}
           dataSource={items}
+          locale={{
+            emptyText: status || date ? "No appointments match these filters." : "No appointments yet.",
+          }}
           pagination={{
             current: page,
             pageSize,

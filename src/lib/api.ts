@@ -20,25 +20,31 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-async function parseError(res: Response): Promise<string> {
+async function parseError(res: Response): Promise<{ message: string; code?: string }> {
   const text = await res.text();
   if (text) {
     try {
-      const data = JSON.parse(text) as { error?: string };
+      const data = JSON.parse(text) as { error?: string; code?: string };
       if (data.error) {
-        return data.error;
+        return { message: data.error, code: data.code };
       }
     } catch {
       // not JSON
     }
   }
-  return text.trim() || res.statusText || "Request failed";
+  return { message: text.trim() || res.statusText || "Request failed" };
+}
+
+async function throwApiError(res: Response): Promise<never> {
+  const body = await parseError(res);
+  throw new ApiError(body.message, res.status, body.code);
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -49,7 +55,7 @@ export async function login(email: string, password: string): Promise<LoginRespo
   });
 
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
 
   const data = (await res.json()) as LoginResponse;
@@ -88,7 +94,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 export async function fetchMe(): Promise<AdminMe> {
   const res = await apiFetch("/api/v1/admin/me");
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as AdminMe;
 }
@@ -108,7 +114,7 @@ export async function listHairstyles(params?: {
   const qs = search.toString();
   const res = await apiFetch(`/api/v1/admin/hairstyles${qs ? `?${qs}` : ""}`);
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Paginated<Hairstyle>;
 }
@@ -116,7 +122,7 @@ export async function listHairstyles(params?: {
 export async function getHairstyle(id: string): Promise<Hairstyle> {
   const res = await apiFetch(`/api/v1/admin/hairstyles/${id}`);
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Hairstyle;
 }
@@ -127,7 +133,7 @@ export async function createHairstyle(body: unknown): Promise<Hairstyle> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Hairstyle;
 }
@@ -138,7 +144,7 @@ export async function updateHairstyle(id: string, body: unknown): Promise<Hairst
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Hairstyle;
 }
@@ -146,7 +152,7 @@ export async function updateHairstyle(id: string, body: unknown): Promise<Hairst
 export async function deleteHairstyle(id: string): Promise<void> {
   const res = await apiFetch(`/api/v1/admin/hairstyles/${id}`, { method: "DELETE" });
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
 }
 
@@ -160,7 +166,7 @@ export async function uploadHairstyleImage(file: File): Promise<string> {
   });
 
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
 
   const data = (await res.json()) as { url: string };
@@ -177,7 +183,7 @@ export async function uploadHairstyleVideo(file: File): Promise<string> {
   });
 
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
 
   const data = (await res.json()) as { url: string };
@@ -199,7 +205,7 @@ export async function listAppointments(params?: {
   const qs = search.toString();
   const res = await apiFetch(`/api/v1/admin/appointments${qs ? `?${qs}` : ""}`);
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Paginated<Appointment>;
 }
@@ -207,7 +213,7 @@ export async function listAppointments(params?: {
 export async function getAppointment(id: string): Promise<Appointment> {
   const res = await apiFetch(`/api/v1/admin/appointments/${id}`);
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Appointment;
 }
@@ -218,7 +224,7 @@ export async function markAppointmentPaid(id: string, note?: string): Promise<Ap
     body: JSON.stringify({ note: note ?? "" }),
   });
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Appointment;
 }
@@ -233,7 +239,7 @@ export async function updateAppointmentStatus(
     body: JSON.stringify({ status, note: note ?? "" }),
   });
   if (!res.ok) {
-    throw new ApiError(await parseError(res), res.status);
+    await throwApiError(res);
   }
   return (await res.json()) as Appointment;
 }

@@ -128,7 +128,14 @@ export default function AppointmentDetailPage() {
             <Spin description="Loading…" />
           </div>
         ) : null}
-        {error ? <Alert type="error" message={error} showIcon /> : null}
+        {error ? (
+          <div className="space-y-3">
+            <Alert type="error" message={error} showIcon />
+            <Button type="link" onClick={() => void load()} className="px-0!">
+              Try again
+            </Button>
+          </div>
+        ) : null}
         {appt ? (
           <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">

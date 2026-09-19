@@ -56,7 +56,8 @@ export default function StylesPage() {
   function confirmDelete(style: Hairstyle) {
     Modal.confirm({
       title: `Delete “${style.name}”?`,
-      content: "This removes the style and its media from storage. Cannot be undone.",
+      content:
+        "This removes the style and its media from storage. Blocked if any booked, paid, acknowledged, or missed appointments still exist.",
       okText: "Delete",
       okButtonProps: { danger: true },
       async onOk() {
@@ -65,7 +66,13 @@ export default function StylesPage() {
           message.success("Deleted");
           await load();
         } catch (e) {
-          message.error(e instanceof ApiError ? e.message : "Delete failed");
+          if (e instanceof ApiError && e.code === "hairstyle_delete_blocked") {
+            message.error(
+              "Cannot delete: this style still has booked, paid, acknowledged, or missed appointments.",
+            );
+          } else {
+            message.error(e instanceof ApiError ? e.message : "Delete failed");
+          }
           throw e;
         }
       },
@@ -171,6 +178,11 @@ export default function StylesPage() {
           loading={loading}
           columns={columns}
           dataSource={items}
+          locale={{
+            emptyText: q
+              ? "No styles match that search."
+              : "No styles yet — create one with New style.",
+          }}
           pagination={{
             current: page,
             pageSize,
